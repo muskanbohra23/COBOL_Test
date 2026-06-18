@@ -1,0 +1,39 @@
+[
+  {
+    "key": "VPM-100",
+    "summary": "Implement tiered daily late-fee interest for overdue invoices (BR-INT-001)",
+    "description": "As Accounts Receivable, we need INTCALC to apply a tiered daily interest rate to overdue invoices so that late fees scale with how overdue an invoice is. Rate tiers: 1-30 days overdue = 0.0150% per day; 31-60 days overdue = 0.0250% per day; 61+ days overdue = 0.0400% per day. Late fee = invoice amount * daily rate * days overdue (simple, non-compounding interest). Invoices with 0 or negative days overdue accrue no fee.",
+    "acceptanceCriteria": [
+      "Given an invoice 15 days overdue, the daily rate applied is 0.000150",
+      "Given an invoice 45 days overdue, the daily rate applied is 0.000250",
+      "Given an invoice 90 days overdue, the daily rate applied is 0.000400",
+      "Given an invoice with 0 days overdue, late fee is 0.00",
+      "Late fee formula is invoice amount * daily rate * days overdue, rounded to 2 decimal places"
+    ],
+    "labels": ["BR-INT-001", "billing", "interest-calc"],
+    "linkedProgram": "INTCALC"
+  },
+  {
+    "key": "VPM-101",
+    "summary": "Cap late-fee interest at 25% of invoice amount (BR-INT-001 amendment)",
+    "description": "Legal/Compliance requires a hard cap on late fees so that long-overdue invoices do not accrue unbounded interest. Amend INTCALC so the computed late fee never exceeds 25% of the original invoice amount, regardless of how many days overdue the invoice is. This caps applies after the tiered daily rate calculation in VPM-100.",
+    "acceptanceCriteria": [
+      "Given an invoice amount of 1000.00 and a calculated late fee greater than 250.00, the applied late fee is capped at 250.00",
+      "Given an invoice amount of 1000.00 and a calculated late fee of 150.00 (under the cap), the applied late fee remains 150.00",
+      "The cap is exactly 25% (0.25) of INV-INVOICE-AMOUNT, rounded to 2 decimal places"
+    ],
+    "labels": ["BR-INT-001", "compliance", "interest-calc"],
+    "linkedProgram": "INTCALC"
+  },
+  {
+    "key": "VPM-102",
+    "summary": "Late fee must round to 2 decimal places using standard rounding",
+    "description": "Finance reported penny-level discrepancies when late fees were truncated instead of rounded. INTCALC's COMPUTE statements use ROUNDED for both the late fee and the cap calculation; the Java conversion must replicate standard half-up rounding to 2 decimal places to avoid reconciliation drift against legacy output.",
+    "acceptanceCriteria": [
+      "Late fee values are rounded half-up to 2 decimal places",
+      "Principal-plus-fee total is computed from the rounded late fee, not the unrounded intermediate value"
+    ],
+    "labels": ["BR-INT-001", "data-quality", "interest-calc"],
+    "linkedProgram": "INTCALC"
+  }
+]
